@@ -27,6 +27,7 @@ class ZeroGPUWeights:
         else:
             self.constants_map = constants_map
     def __reduce__(self):
+        print('ZeroGPUWeights.__reduce__', f'{id(self)=}', sum([tensor.nbytes for tensor in self.constants_map.values()]))
         constants_map: dict[str, torch.Tensor] = {}
         for name, tensor in self.constants_map.items():
             tensor_ = torch.empty_like(tensor, device='cpu').pin_memory()
@@ -46,6 +47,7 @@ class ZeroGPUCompiledModel:
             self.compiled_model.set(compiled_model)
         return compiled_model(*args, **kwargs)
     def __reduce__(self):
+        print('ZeroGPUCompiledModel.__reduce__', f'{id(self.weights)=}')
         return ZeroGPUCompiledModel, (self.archive_file, self.weights)
 
 
