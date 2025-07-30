@@ -42,8 +42,6 @@ def optimize_pipeline_(pipeline: Callable[P, Any], *args: P.args, **kwargs: P.kw
 
     @spaces.GPU(duration=1500)
     def compile_transformer():
-
-        quantize_(pipeline.text_encoder, Int8WeightOnlyConfig()) # Just to free-up some GPU memory
         
         with capture_component_call(pipeline, 'transformer') as call:
             pipeline(*args, **kwargs)
@@ -89,6 +87,7 @@ def optimize_pipeline_(pipeline: Callable[P, Any], *args: P.args, **kwargs: P.kw
             compiled_portrait_2,
         )
 
+    quantize_(pipeline.text_encoder, Int8WeightOnlyConfig())
     cl1, cl2, cp1, cp2 = compile_transformer()
 
     def combined_transformer_1(*args, **kwargs):
