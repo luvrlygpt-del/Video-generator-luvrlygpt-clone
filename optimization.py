@@ -10,6 +10,7 @@ import torch
 from torch.utils._pytree import tree_map_only
 from torchao.quantization import quantize_
 from torchao.quantization import Float8DynamicActivationFloat8WeightConfig
+from torchao.quantization import Int8WeightOnlyConfig
 
 from optimization_utils import capture_component_call
 from optimization_utils import aoti_compile
@@ -42,6 +43,8 @@ def optimize_pipeline_(pipeline: Callable[P, Any], *args: P.args, **kwargs: P.kw
     @spaces.GPU(duration=1500)
     def compile_transformer():
 
+        quantize_(pipeline.text_encoder, Int8WeightOnlyConfig()) # Just to free-up some GPU memory
+        
         with capture_component_call(pipeline, 'transformer') as call:
             pipeline(*args, **kwargs)
         
@@ -86,9 +89,7 @@ def optimize_pipeline_(pipeline: Callable[P, Any], *args: P.args, **kwargs: P.kw
             compiled_portrait_2,
         )
 
-    pipeline.text_encoder.to('cpu')
     cl1, cl2, cp1, cp2 = compile_transformer()
-    pipeline.text_encoder.to('cuda')
 
     def combined_transformer_1(*args, **kwargs):
         hidden_states: torch.Tensor = kwargs['hidden_states']
