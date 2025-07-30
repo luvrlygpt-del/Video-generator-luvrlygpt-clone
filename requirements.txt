@@ -1,0 +1,10 @@
+git+https://github.com/huggingface/diffusers.git@5512d70f7fd89f69511d9c23f1473a49f7901bee
+transformers
+accelerate
+safetensors
+sentencepiece
+peft
+ftfy
+imageio-ffmpeg
+opencv-python
+torchao==0.11.0
