@@ -86,7 +86,9 @@ def optimize_pipeline_(pipeline: Callable[P, Any], *args: P.args, **kwargs: P.kw
             compiled_portrait_2,
         )
 
+    pipeline.text_encoder.to('cpu')
     cl1, cl2, cp1, cp2 = compile_transformer()
+    pipeline.text_encoder.to('cuda')
 
     def combined_transformer_1(*args, **kwargs):
         hidden_states: torch.Tensor = kwargs['hidden_states']
