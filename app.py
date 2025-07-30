@@ -31,19 +31,17 @@ MIN_DURATION = round(MIN_FRAMES_MODEL/FIXED_FPS,1)
 MAX_DURATION = round(MAX_FRAMES_MODEL/FIXED_FPS,1)
 
 
-transformer = WanTransformer3DModel.from_pretrained('cbensimon/Wan2.2-I2V-A14B-bf16-Diffusers',
-    subfolder='transformer',
-    torch_dtype=torch.bfloat16,
-    device_map='cuda',
-)
-transformer_2 = WanTransformer3DModel.from_pretrained('cbensimon/Wan2.2-I2V-A14B-bf16-Diffusers',
-    subfolder='transformer_2',
-    torch_dtype=torch.bfloat16,
-    device_map='cuda',
-)
 pipe = WanImageToVideoPipeline.from_pretrained(MODEL_ID,
-    transformer=transformer,
-    transformer_2=transformer,
+    transformer=WanTransformer3DModel.from_pretrained('cbensimon/Wan2.2-I2V-A14B-bf16-Diffusers',
+        subfolder='transformer',
+        torch_dtype=torch.bfloat16,
+        device_map='cuda',
+    ),
+    transformer_2=WanTransformer3DModel.from_pretrained('cbensimon/Wan2.2-I2V-A14B-bf16-Diffusers',
+        subfolder='transformer_2',
+        torch_dtype=torch.bfloat16,
+        device_map='cuda',
+    ),
     torch_dtype=torch.bfloat16,
 ).to('cuda')
 
