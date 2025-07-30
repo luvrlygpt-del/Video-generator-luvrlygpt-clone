@@ -50,6 +50,7 @@ def optimize_pipeline_(pipeline: Callable[P, Any], *args: P.args, **kwargs: P.kw
         dynamic_shapes |= TRANSFORMER_DYNAMIC_SHAPES
 
         quantize_(pipeline.transformer, Float8DynamicActivationFloat8WeightConfig())
+        quantize_(pipeline.transformer_2, Float8DynamicActivationFloat8WeightConfig())
         
         hidden_states: torch.Tensor = call.kwargs['hidden_states']
         hidden_states_transposed = hidden_states.transpose(-1, -2).contiguous()
