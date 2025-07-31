@@ -23,7 +23,7 @@ LANDSCAPE_WIDTH = 832
 LANDSCAPE_HEIGHT = 480
 MAX_SEED = np.iinfo(np.int32).max
 
-FIXED_FPS = 24
+FIXED_FPS = 16
 MIN_FRAMES_MODEL = 8
 MAX_FRAMES_MODEL = 81
 
@@ -201,8 +201,8 @@ with gr.Blocks() as demo:
                 seed_input = gr.Slider(label="Seed", minimum=0, maximum=MAX_SEED, step=1, value=42, interactive=True)
                 randomize_seed_checkbox = gr.Checkbox(label="Randomize seed", value=True, interactive=True)
                 steps_slider = gr.Slider(minimum=1, maximum=30, step=1, value=6, label="Inference Steps") 
-                guidance_scale_input = gr.Slider(minimum=0.0, maximum=10.0, step=0.5, value=2.5, label="Guidance Scale - high noise stage", visible=False)
-                guidance_scale_2_input = gr.Slider(minimum=0.0, maximum=10.0, step=0.5, value=3.5, label="Guidance Scale 2 - low noise stage", visible=False)
+                guidance_scale_input = gr.Slider(minimum=0.0, maximum=10.0, step=0.5, value=2.5, label="Guidance Scale - high noise stage")
+                guidance_scale_2_input = gr.Slider(minimum=0.0, maximum=10.0, step=0.5, value=3.5, label="Guidance Scale 2 - low noise stage")
 
             generate_button = gr.Button("Generate Video", variant="primary")
         with gr.Column():
