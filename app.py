@@ -98,6 +98,7 @@ def get_duration(
     negative_prompt,
     duration_seconds,
     guidance_scale,
+    guidance_scale_2,
     steps,
     seed,
     randomize_seed,
@@ -199,7 +200,7 @@ with gr.Blocks() as demo:
                 negative_prompt_input = gr.Textbox(label="Negative Prompt", value=default_negative_prompt, lines=3)
                 seed_input = gr.Slider(label="Seed", minimum=0, maximum=MAX_SEED, step=1, value=42, interactive=True)
                 randomize_seed_checkbox = gr.Checkbox(label="Randomize seed", value=True, interactive=True)
-                steps_slider = gr.Slider(minimum=1, maximum=30, step=1, value=4, label="Inference Steps") 
+                steps_slider = gr.Slider(minimum=1, maximum=30, step=1, value=6, label="Inference Steps") 
                 guidance_scale_input = gr.Slider(minimum=0.0, maximum=10.0, step=0.5, value=2.5, label="Guidance Scale - high noise stage", visible=False)
                 guidance_scale_2_input = gr.Slider(minimum=0.0, maximum=10.0, step=0.5, value=3.5, label="Guidance Scale 2 - low noise stage", visible=False)
 
