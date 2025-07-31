@@ -45,6 +45,17 @@ pipe = WanImageToVideoPipeline.from_pretrained(MODEL_ID,
     torch_dtype=torch.bfloat16,
 ).to('cuda')
 
+# load, fuse, unload before compilation
+pipe.load_lora_weights(
+   "vrgamedevgirl84/Wan14BT2VFusioniX", 
+   weight_name="FusionX_LoRa/Phantom_Wan_14B_FusionX_LoRA.safetensors", 
+    adapter_name="phantom"
+)
+
+pipeline.set_adapters(["phantom"], adapter_weights=[0.95])
+pipeline.fuse_lora(adapter_names=["phantom"], lora_scale=1.0)
+pipeline.unload_lora_weights()
+
 
 optimize_pipeline_(pipe,
     image=Image.new('RGB', (LANDSCAPE_WIDTH, LANDSCAPE_HEIGHT)),
