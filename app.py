@@ -52,9 +52,9 @@ pipe.load_lora_weights(
     adapter_name="phantom"
 )
 
-pipeline.set_adapters(["phantom"], adapter_weights=[0.95])
-pipeline.fuse_lora(adapter_names=["phantom"], lora_scale=1.0)
-pipeline.unload_lora_weights()
+pipe.set_adapters(["phantom"], adapter_weights=[0.95])
+pipe.fuse_lora(adapter_names=["phantom"], lora_scale=1.0)
+pipe.unload_lora_weights()
 
 
 optimize_pipeline_(pipe,
