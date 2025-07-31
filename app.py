@@ -46,16 +46,33 @@ pipe = WanImageToVideoPipeline.from_pretrained(MODEL_ID,
 ).to('cuda')
 
 # load, fuse, unload before compilation
+# pipe.load_lora_weights(
+#    "vrgamedevgirl84/Wan14BT2VFusioniX", 
+#    weight_name="FusionX_LoRa/Phantom_Wan_14B_FusionX_LoRA.safetensors", 
+#     adapter_name="phantom"
+# )
+
+# pipe.set_adapters(["phantom"], adapter_weights=[0.95])
+# pipe.fuse_lora(adapter_names=["phantom"], lora_scale=1.0)
+# pipe.unload_lora_weights()
+
+
 pipe.load_lora_weights(
    "vrgamedevgirl84/Wan14BT2VFusioniX", 
    weight_name="FusionX_LoRa/Phantom_Wan_14B_FusionX_LoRA.safetensors", 
     adapter_name="phantom"
 )
-
-pipe.set_adapters(["phantom"], adapter_weights=[0.95])
-pipe.fuse_lora(adapter_names=["phantom"], lora_scale=1.0)
+kwargs = {}
+kwargs["load_into_transformer_2"] = True
+pipe.load_lora_weights(
+   "vrgamedevgirl84/Wan14BT2VFusioniX", 
+   weight_name="FusionX_LoRa/Phantom_Wan_14B_FusionX_LoRA.safetensors", 
+    adapter_name="phantom_2", **kwargs
+)
+pipe.set_adapters(["phantom", "phantom_2"], adapter_weights=[1., 1.])
+pipe.fuse_lora(adapter_names=["phantom"], lora_scale=3., components=["transformer"])
+pipe.fuse_lora(adapter_names=["phantom_2"], lora_scale=1., components=["transformer_2"])
 pipe.unload_lora_weights()
-
 
 optimize_pipeline_(pipe,
     image=Image.new('RGB', (LANDSCAPE_WIDTH, LANDSCAPE_HEIGHT)),
@@ -201,8 +218,8 @@ with gr.Blocks() as demo:
                 seed_input = gr.Slider(label="Seed", minimum=0, maximum=MAX_SEED, step=1, value=42, interactive=True)
                 randomize_seed_checkbox = gr.Checkbox(label="Randomize seed", value=True, interactive=True)
                 steps_slider = gr.Slider(minimum=1, maximum=30, step=1, value=6, label="Inference Steps") 
-                guidance_scale_input = gr.Slider(minimum=0.0, maximum=10.0, step=0.5, value=2.5, label="Guidance Scale - high noise stage")
-                guidance_scale_2_input = gr.Slider(minimum=0.0, maximum=10.0, step=0.5, value=3.5, label="Guidance Scale 2 - low noise stage")
+                guidance_scale_input = gr.Slider(minimum=0.0, maximum=10.0, step=0.5, value=3, label="Guidance Scale - high noise stage")
+                guidance_scale_2_input = gr.Slider(minimum=0.0, maximum=10.0, step=0.5, value=1, label="Guidance Scale 2 - low noise stage")
 
             generate_button = gr.Button("Generate Video", variant="primary")
         with gr.Column():

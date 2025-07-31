@@ -1,4 +1,4 @@
-git+https://github.com/huggingface/diffusers.git@5512d70f7fd89f69511d9c23f1473a49f7901bee
+git+https://github.com/linoytsaban/diffusers.git@wan22-loras
 transformers
 accelerate
 safetensors
