@@ -111,8 +111,9 @@ def generate_video(
     prompt,
     negative_prompt=default_negative_prompt,
     duration_seconds = MAX_DURATION,
-    guidance_scale = 1,
-    steps = 4,
+    guidance_scale = 2.5,
+    guidance_scale_2 = 3.5,
+    steps = 6,
     seed = 42,
     randomize_seed = False,
     progress=gr.Progress(track_tqdm=True),
@@ -132,6 +133,8 @@ def generate_video(
         duration_seconds (float, optional): Duration of the generated video in seconds.
             Defaults to 2. Clamped between MIN_FRAMES_MODEL/FIXED_FPS and MAX_FRAMES_MODEL/FIXED_FPS.
         guidance_scale (float, optional): Controls adherence to the prompt. Higher values = more adherence.
+            Defaults to 1.0. Range: 0.0-20.0.
+        guidance_scale_2 (float, optional): Controls adherence to the prompt. Higher values = more adherence.
             Defaults to 1.0. Range: 0.0-20.0.
         steps (int, optional): Number of inference steps. More steps = higher quality but slower.
             Defaults to 4. Range: 1-30.
@@ -171,6 +174,7 @@ def generate_video(
         width=resized_image.width,
         num_frames=num_frames,
         guidance_scale=float(guidance_scale),
+        guidance_scale_2=float(guidance_scale_2),
         num_inference_steps=int(steps),
         generator=torch.Generator(device="cuda").manual_seed(current_seed),
     ).frames[0]
@@ -196,7 +200,8 @@ with gr.Blocks() as demo:
                 seed_input = gr.Slider(label="Seed", minimum=0, maximum=MAX_SEED, step=1, value=42, interactive=True)
                 randomize_seed_checkbox = gr.Checkbox(label="Randomize seed", value=True, interactive=True)
                 steps_slider = gr.Slider(minimum=1, maximum=30, step=1, value=4, label="Inference Steps") 
-                guidance_scale_input = gr.Slider(minimum=0.0, maximum=20.0, step=0.5, value=1.0, label="Guidance Scale", visible=False)
+                guidance_scale_input = gr.Slider(minimum=0.0, maximum=10.0, step=0.5, value=2.5, label="Guidance Scale - high noise stage", visible=False)
+                guidance_scale_2_input = gr.Slider(minimum=0.0, maximum=10.0, step=0.5, value=3.5, label="Guidance Scale 2 - low noise stage", visible=False)
 
             generate_button = gr.Button("Generate Video", variant="primary")
         with gr.Column():
@@ -205,7 +210,7 @@ with gr.Blocks() as demo:
     ui_inputs = [
         input_image_component, prompt_input,
         negative_prompt_input, duration_seconds_input,
-        guidance_scale_input, steps_slider, seed_input, randomize_seed_checkbox
+        guidance_scale_input, guidance_scale_2_input, steps_slider, seed_input, randomize_seed_checkbox
     ]
     generate_button.click(fn=generate_video, inputs=ui_inputs, outputs=[video_output, seed_input])
 
