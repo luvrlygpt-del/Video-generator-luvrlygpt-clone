@@ -134,8 +134,8 @@ def generate_video(
     prompt,
     negative_prompt=default_negative_prompt,
     duration_seconds = MAX_DURATION,
-    guidance_scale = 2.5,
-    guidance_scale_2 = 3.5,
+    guidance_scale = 1,
+    guidance_scale_2 = 3,
     steps = 6,
     seed = 42,
     randomize_seed = False,
@@ -211,7 +211,7 @@ def generate_video(
 
 with gr.Blocks() as demo:
     gr.Markdown("# Fast 6 steps Wan 2.2 I2V (14B) with Phantom LoRA")
-    gr.Markdown("run Wan 2.2 in just 6-8 steps, with [FusionX Phantom LoRA by DeeJayT](https://huggingface.co/vrgamedevgirl84/Wan14BT2VFusioniX/tree/main/FusionX_LoRa) and is compatible with 🧨 diffusers")
+    gr.Markdown("run Wan 2.2 in just 6-8 steps, with [FusionX Phantom LoRA by DeeJayT](https://huggingface.co/vrgamedevgirl84/Wan14BT2VFusioniX/tree/main/FusionX_LoRa), compatible with 🧨 diffusers")
     with gr.Row():
         with gr.Column():
             input_image_component = gr.Image(type="pil", label="Input Image (auto-resized to target H/W)")
