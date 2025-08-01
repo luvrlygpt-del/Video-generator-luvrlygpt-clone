@@ -43,6 +43,23 @@ def optimize_pipeline_(pipeline: Callable[P, Any], *args: P.args, **kwargs: P.kw
     @spaces.GPU(duration=1500)
     def compile_transformer():
         
+        pipeline.load_lora_weights(
+           "vrgamedevgirl84/Wan14BT2VFusioniX", 
+           weight_name="FusionX_LoRa/Phantom_Wan_14B_FusionX_LoRA.safetensors", 
+            adapter_name="phantom"
+        )
+        kwargs = {}
+        kwargs["load_into_transformer_2"] = True
+        pipeline.load_lora_weights(
+           "vrgamedevgirl84/Wan14BT2VFusioniX", 
+           weight_name="FusionX_LoRa/Phantom_Wan_14B_FusionX_LoRA.safetensors", 
+            adapter_name="phantom_2", **kwargs
+        )
+        pipeline.set_adapters(["phantom", "phantom_2"], adapter_weights=[1., 1.])
+        pipeline.fuse_lora(adapter_names=["phantom"], lora_scale=3., components=["transformer"])
+        pipeline.fuse_lora(adapter_names=["phantom_2"], lora_scale=1., components=["transformer_2"])
+        pipeline.unload_lora_weights()
+        
         with capture_component_call(pipeline, 'transformer') as call:
             pipeline(*args, **kwargs)
         
