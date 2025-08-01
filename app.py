@@ -64,14 +64,14 @@ pipe.load_lora_weights(
 )
 kwargs = {}
 kwargs["load_into_transformer_2"] = True
-pipe.load_lora_weights(
-   "vrgamedevgirl84/Wan14BT2VFusioniX", 
-   weight_name="FusionX_LoRa/Phantom_Wan_14B_FusionX_LoRA.safetensors", 
-    adapter_name="phantom_2", **kwargs
-)
-pipe.set_adapters(["phantom", "phantom_2"], adapter_weights=[1., 1.])
+# pipe.load_lora_weights(
+#    "vrgamedevgirl84/Wan14BT2VFusioniX", 
+#    weight_name="FusionX_LoRa/Phantom_Wan_14B_FusionX_LoRA.safetensors", 
+#     adapter_name="phantom_2", **kwargs
+# )
+# pipe.set_adapters(["phantom", "phantom_2"], adapter_weights=[1., 1.])
 pipe.fuse_lora(adapter_names=["phantom"], lora_scale=3., components=["transformer"])
-pipe.fuse_lora(adapter_names=["phantom_2"], lora_scale=1., components=["transformer_2"])
+# pipe.fuse_lora(adapter_names=["phantom_2"], lora_scale=1., components=["transformer_2"])
 pipe.unload_lora_weights()
 
 optimize_pipeline_(pipe,
