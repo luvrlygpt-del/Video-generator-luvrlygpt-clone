@@ -1,4 +1,5 @@
 git+https://github.com/linoytsaban/diffusers.git@wan22-loras
+
 transformers
 accelerate
 safetensors
