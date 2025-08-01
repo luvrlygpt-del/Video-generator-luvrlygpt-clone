@@ -15,6 +15,7 @@ from torchao.quantization import Int8WeightOnlyConfig
 from optimization_utils import capture_component_call
 from optimization_utils import aoti_compile
 from optimization_utils import ZeroGPUCompiledModel
+from optimization_utils import drain_module_parameters
 
 
 P = ParamSpec('P')
