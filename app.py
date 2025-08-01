@@ -210,8 +210,8 @@ def generate_video(
     return video_path, current_seed
 
 with gr.Blocks() as demo:
-    gr.Markdown("# Fast 4 steps Wan 2.1 I2V (14B) with CausVid LoRA")
-    gr.Markdown("[CausVid](https://github.com/tianweiy/CausVid) is a distilled version of Wan 2.1 to run faster in just 4-8 steps, [extracted as LoRA by Kijai](https://huggingface.co/Kijai/WanVideo_comfy/blob/main/Wan21_CausVid_14B_T2V_lora_rank32.safetensors) and is compatible with 🧨 diffusers")
+    gr.Markdown("# Fast 6 steps Wan 2.2 I2V (14B) with Phantom LoRA")
+    gr.Markdown("run Wan 2.2 in just 6-8 steps, with [FusionX Phantom LoRA by DeeJayT](https://huggingface.co/vrgamedevgirl84/Wan14BT2VFusioniX/tree/main/FusionX_LoRa) and is compatible with 🧨 diffusers")
     with gr.Row():
         with gr.Column():
             input_image_component = gr.Image(type="pil", label="Input Image (auto-resized to target H/W)")
