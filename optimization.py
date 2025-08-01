@@ -48,12 +48,12 @@ def optimize_pipeline_(pipeline: Callable[P, Any], *args: P.args, **kwargs: P.kw
            weight_name="FusionX_LoRa/Phantom_Wan_14B_FusionX_LoRA.safetensors", 
             adapter_name="phantom"
         )
-        kwargs = {}
-        kwargs["load_into_transformer_2"] = True
+        kwargs_lora = {}
+        kwargs_lora["load_into_transformer_2"] = True
         pipeline.load_lora_weights(
            "vrgamedevgirl84/Wan14BT2VFusioniX", 
            weight_name="FusionX_LoRa/Phantom_Wan_14B_FusionX_LoRA.safetensors", 
-            adapter_name="phantom_2", **kwargs
+            adapter_name="phantom_2", **kwargs_lora
         )
         pipeline.set_adapters(["phantom", "phantom_2"], adapter_weights=[1., 1.])
         pipeline.fuse_lora(adapter_names=["phantom"], lora_scale=3., components=["transformer"])
