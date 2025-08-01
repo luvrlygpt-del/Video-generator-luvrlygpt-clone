@@ -142,11 +142,11 @@ def generate_video(
     progress=gr.Progress(track_tqdm=True),
 ):
     """
-    Generate a video from an input image using the Wan 2.1 I2V model with CausVid LoRA.
+    Generate a video from an input image using the Wan 2.2 14B I2V model with Phantom LoRA.
     
     This function takes an input image and generates a video animation based on the provided
-    prompt and parameters. It uses the Wan 2.1 14B Image-to-Video model with CausVid LoRA
-    for fast generation in 4-8 steps.
+    prompt and parameters. It uses an FP8 qunatized Wan 2.2 14B Image-to-Video model in with Phantom LoRA
+    for fast generation in 6-8 steps.
     
     Args:
         input_image (PIL.Image): The input image to animate. Will be resized to target dimensions.
@@ -242,6 +242,11 @@ with gr.Blocks() as demo:
             [
                 "wan_i2v_input.JPG",
                 "Summer beach vacation style, a white cat wearing sunglasses sits on a surfboard. The fluffy-furred feline gazes directly at the camera with a relaxed expression. Blurred beach scenery forms the background featuring crystal-clear waters, distant green hills, and a blue sky dotted with white clouds. The cat assumes a naturally relaxed posture, as if savoring the sea breeze and warm sunlight. A close-up shot highlights the feline's intricate details and the refreshing atmosphere of the seaside.",
+            ],
+            [
+                "wan22_input_2.jpg",
+                "A sleek lunar vehicle glides into view from left to right, kicking up moon dust as astronauts in white spacesuits hop aboard with characteristic lunar bouncing movements. In the distant background, a VTOL craft descends straight down and lands silently on the surface. Throughout the entire scene, ethereal aurora borealis ribbons dance across the star-filled sky, casting shimmering curtains of green, blue, and purple light that bathe the lunar landscape in an otherworldly, magical glow.",
+
             ],
         ],
         inputs=[input_image_component, prompt_input], outputs=[video_output, seed_input], fn=generate_video, cache_examples="lazy"
