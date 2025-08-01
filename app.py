@@ -74,7 +74,7 @@ pipe.fuse_lora(adapter_names=["phantom"], lora_scale=3., components=["transforme
 pipe.fuse_lora(adapter_names=["phantom_2"], lora_scale=1., components=["transformer_2"])
 pipe.unload_lora_weights()
 
-for i in range(2): 
+for i in range(3): 
     gc.collect()
     torch.cuda.synchronize() 
     torch.cuda.empty_cache()
@@ -242,11 +242,6 @@ with gr.Blocks() as demo:
             [
                 "wan_i2v_input.JPG",
                 "Summer beach vacation style, a white cat wearing sunglasses sits on a surfboard. The fluffy-furred feline gazes directly at the camera with a relaxed expression. Blurred beach scenery forms the background featuring crystal-clear waters, distant green hills, and a blue sky dotted with white clouds. The cat assumes a naturally relaxed posture, as if savoring the sea breeze and warm sunlight. A close-up shot highlights the feline's intricate details and the refreshing atmosphere of the seaside.",
-            ],
-            [
-                "wan22_input_2.jpg",
-                "A sleek lunar vehicle glides into view from left to right, kicking up moon dust as astronauts in white spacesuits hop aboard with characteristic lunar bouncing movements. In the distant background, a VTOL craft descends straight down and lands silently on the surface. Throughout the entire scene, ethereal aurora borealis ribbons dance across the star-filled sky, casting shimmering curtains of green, blue, and purple light that bathe the lunar landscape in an otherworldly, magical glow.",
-
             ],
         ],
         inputs=[input_image_component, prompt_input], outputs=[video_output, seed_input], fn=generate_video, cache_examples="lazy"
