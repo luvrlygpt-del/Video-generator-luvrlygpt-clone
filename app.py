@@ -74,8 +74,10 @@ pipe.fuse_lora(adapter_names=["phantom"], lora_scale=3., components=["transforme
 pipe.fuse_lora(adapter_names=["phantom_2"], lora_scale=1., components=["transformer_2"])
 pipe.unload_lora_weights()
 
-torch.cuda.empty_cache()
-gc.collect()
+for i in range(2): 
+    gc.collect()
+    torch.cuda.synchronize() 
+    torch.cuda.empty_cache()
 
 optimize_pipeline_(pipe,
     image=Image.new('RGB', (LANDSCAPE_WIDTH, LANDSCAPE_HEIGHT)),
