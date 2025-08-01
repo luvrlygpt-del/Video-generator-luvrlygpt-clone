@@ -96,3 +96,12 @@ def capture_component_call(
         except CapturedCallException as e:
             captured_call.args = e.args
             captured_call.kwargs = e.kwargs
+
+
+def drain_module_parameters(module: torch.nn.Module):
+    state_dict_meta = {name: {'device': tensor.device, 'dtype': tensor.dtype} for name, tensor in module.state_dict().items()}
+    state_dict = {name: torch.nn.Parameter(torch.empty_like(tensor, device='cpu')) for name, tensor in module.state_dict().items()}
+    module.load_state_dict(state_dict, assign=True)
+    for name, param in state_dict.items():
+        meta = state_dict_meta[name]
+        param.data = torch.Tensor([]).to(**meta)

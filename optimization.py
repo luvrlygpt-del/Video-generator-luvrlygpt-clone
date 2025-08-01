@@ -122,13 +122,8 @@ def optimize_pipeline_(pipeline: Callable[P, Any], *args: P.args, **kwargs: P.kw
         else:
             return cp2(*args, **kwargs)
 
-    transformer_config = pipeline.transformer.config
-    transformer_dtype = pipeline.transformer.dtype
+    pipeline.transformer.forward = combined_transformer_1
+    drain_module_parameters(pipeline.transformer)
 
-    pipeline.transformer = combined_transformer_1
-    pipeline.transformer.config = transformer_config # pyright: ignore[reportAttributeAccessIssue]
-    pipeline.transformer.dtype = transformer_dtype # pyright: ignore[reportAttributeAccessIssue]
-
-    pipeline.transformer_2 = combined_transformer_2
-    pipeline.transformer_2.config = transformer_config # pyright: ignore[reportAttributeAccessIssue]
-    pipeline.transformer_2.dtype = transformer_dtype # pyright: ignore[reportAttributeAccessIssue]
+    pipeline.transformer_2.forward = combined_transformer_2
+    drain_module_parameters(pipeline.transformer_2)
