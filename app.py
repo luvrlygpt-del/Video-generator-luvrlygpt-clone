@@ -45,35 +45,6 @@ pipe = WanImageToVideoPipeline.from_pretrained(MODEL_ID,
     torch_dtype=torch.bfloat16,
 ).to('cuda')
 
-# load, fuse, unload before compilation
-# pipe.load_lora_weights(
-#    "vrgamedevgirl84/Wan14BT2VFusioniX", 
-#    weight_name="FusionX_LoRa/Phantom_Wan_14B_FusionX_LoRA.safetensors", 
-#     adapter_name="phantom"
-# )
-
-# pipe.set_adapters(["phantom"], adapter_weights=[0.95])
-# pipe.fuse_lora(adapter_names=["phantom"], lora_scale=1.0)
-# pipe.unload_lora_weights()
-
-
-# pipe.load_lora_weights(
-#    "vrgamedevgirl84/Wan14BT2VFusioniX", 
-#    weight_name="FusionX_LoRa/Phantom_Wan_14B_FusionX_LoRA.safetensors", 
-#     adapter_name="phantom"
-# )
-# kwargs = {}
-# kwargs["load_into_transformer_2"] = True
-# pipe.load_lora_weights(
-#    "vrgamedevgirl84/Wan14BT2VFusioniX", 
-#    weight_name="FusionX_LoRa/Phantom_Wan_14B_FusionX_LoRA.safetensors", 
-#     adapter_name="phantom_2", **kwargs
-# )
-# pipe.set_adapters(["phantom", "phantom_2"], adapter_weights=[1., 1.])
-# pipe.fuse_lora(adapter_names=["phantom"], lora_scale=3., components=["transformer"])
-# pipe.fuse_lora(adapter_names=["phantom_2"], lora_scale=1., components=["transformer_2"])
-# pipe.unload_lora_weights()
-
 for i in range(3): 
     gc.collect()
     torch.cuda.synchronize() 
@@ -135,8 +106,8 @@ def generate_video(
     negative_prompt=default_negative_prompt,
     duration_seconds = MAX_DURATION,
     guidance_scale = 1,
-    guidance_scale_2 = 3,
-    steps = 6,
+    guidance_scale_2 = 1,
+    steps = 4,
     seed = 42,
     randomize_seed = False,
     progress=gr.Progress(track_tqdm=True),
@@ -210,8 +181,8 @@ def generate_video(
     return video_path, current_seed
 
 with gr.Blocks() as demo:
-    gr.Markdown("# Fast 6 steps Wan 2.2 I2V (14B) with Phantom LoRA")
-    gr.Markdown("run Wan 2.2 in just 6-8 steps, with [FusionX Phantom LoRA by DeeJayT](https://huggingface.co/vrgamedevgirl84/Wan14BT2VFusioniX/tree/main/FusionX_LoRa), compatible with 🧨 diffusers")
+    gr.Markdown("# Fast 4 steps Wan 2.2 I2V (14B) with Lightx2v LoRA")
+    gr.Markdown("run Wan 2.2 in just 4-8 steps, with [Lightx2v LoRA](https://huggingface.co/vrgamedevgirl84/Wan14BT2VFusioniX/tree/main/FusionX_LoRa), fp8 quantization & AoT compilation - compatible with 🧨 diffusers and ZeroGPU⚡️")
     with gr.Row():
         with gr.Column():
             input_image_component = gr.Image(type="pil", label="Input Image (auto-resized to target H/W)")
@@ -242,6 +213,14 @@ with gr.Blocks() as demo:
             [
                 "wan_i2v_input.JPG",
                 "POV selfie video, white cat with sunglasses standing on surfboard, relaxed smile, tropical beach behind (clear water, green hills, blue sky with clouds). Surfboard tips, cat falls into ocean, camera plunges underwater with bubbles and sunlight beams. Brief underwater view of cat’s face, then cat resurfaces, still filming selfie, playful summer vacation mood.",
+            ],
+            [
+                "wan22_input_2.jpg",
+                "A sleek lunar vehicle glides into view from left to right, kicking up moon dust as astronauts in white spacesuits hop aboard with characteristic lunar bouncing movements. In the distant background, a VTOL craft descends straight down and lands silently on the surface. Throughout the entire scene, ethereal aurora borealis ribbons dance across the star-filled sky, casting shimmering curtains of green, blue, and purple light that bathe the lunar landscape in an otherworldly, magical glow.",
+            ],
+            [
+                "kill_bill.jpeg",
+                "Uma Thurman's character, Beatrix Kiddo, holds her razor-sharp katana blade steady in the cinematic lighting. Suddenly, the polished steel begins to soften and distort, like heated metal starting to lose its structural integrity. The blade's perfect edge slowly warps and droops, molten steel beginning to flow downward in silvery rivulets while maintaining its metallic sheen. The transformation starts subtly at first - a slight bend in the blade - then accelerates as the metal becomes increasingly fluid. The camera holds steady on her face as her piercing eyes gradually narrow, not with lethal focus, but with confusion and growing alarm as she watches her weapon dissolve before her eyes. Her breathing quickens slightly as she witnesses this impossible transformation. The melting intensifies, the katana's perfect form becoming increasingly abstract, dripping like liquid mercury from her grip. Molten droplets fall to the ground with soft metallic impacts. Her expression shifts from calm readiness to bewilderment and concern as her legendary instrument of vengeance literally liquefies in her hands, leaving her defenseless and disoriented.",
             ],
         ],
         inputs=[input_image_component, prompt_input], outputs=[video_output, seed_input], fn=generate_video, cache_examples="lazy"
