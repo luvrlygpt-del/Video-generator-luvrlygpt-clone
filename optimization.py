@@ -57,7 +57,7 @@ def optimize_pipeline_(pipeline: Callable[P, Any], *args: P.args, **kwargs: P.kw
             adapter_name="lightx2v_2", **kwargs_lora
         )
         pipeline.set_adapters(["lightx2v", "lightx2v_2"], adapter_weights=[1., 1.])
-        pipeline.fuse_lora(adapter_names=["lightx2v"], lora_scale=3., components=["transformer"])
+        pipeline.fuse_lora(adapter_names=["lightx2v"], lora_scale=1., components=["transformer"])
         pipeline.fuse_lora(adapter_names=["lightx2v_2"], lora_scale=1., components=["transformer_2"])
         pipeline.unload_lora_weights()
         
