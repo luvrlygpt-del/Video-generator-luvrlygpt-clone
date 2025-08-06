@@ -113,11 +113,11 @@ def generate_video(
     progress=gr.Progress(track_tqdm=True),
 ):
     """
-    Generate a video from an input image using the Wan 2.2 14B I2V model with Phantom LoRA.
+    Generate a video from an input image using the Wan 2.2 14B I2V model with Lightning LoRA.
     
     This function takes an input image and generates a video animation based on the provided
-    prompt and parameters. It uses an FP8 qunatized Wan 2.2 14B Image-to-Video model in with Phantom LoRA
-    for fast generation in 6-8 steps.
+    prompt and parameters. It uses an FP8 qunatized Wan 2.2 14B Image-to-Video model in with Lightning LoRA
+    for fast generation in 4-8 steps.
     
     Args:
         input_image (PIL.Image): The input image to animate. Will be resized to target dimensions.
@@ -181,8 +181,8 @@ def generate_video(
     return video_path, current_seed
 
 with gr.Blocks() as demo:
-    gr.Markdown("# Fast 4 steps Wan 2.2 I2V (14B) with Lightx2v LoRA")
-    gr.Markdown("run Wan 2.2 in just 4-8 steps, with [Lightx2v LoRA](https://huggingface.co/vrgamedevgirl84/Wan14BT2VFusioniX/tree/main/FusionX_LoRa), fp8 quantization & AoT compilation - compatible with 🧨 diffusers and ZeroGPU⚡️")
+    gr.Markdown("# Fast 4 steps Wan 2.2 I2V (14B) with Lightning LoRA")
+    gr.Markdown("run Wan 2.2 in just 4-8 steps, with [Lightning LoRA](https://huggingface.co/Kijai/WanVideo_comfy/tree/main/Wan22-Lightning), fp8 quantization & AoT compilation - compatible with 🧨 diffusers and ZeroGPU⚡️")
     with gr.Row():
         with gr.Column():
             input_image_component = gr.Image(type="pil", label="Input Image (auto-resized to target H/W)")
