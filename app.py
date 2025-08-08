@@ -202,9 +202,9 @@ with gr.Blocks() as demo:
             video_output = gr.Video(label="Generated Video", autoplay=True, interactive=False)
     
     ui_inputs = [
-        input_image_component, prompt_input,
+        input_image_component, prompt_input, steps_slider,
         negative_prompt_input, duration_seconds_input,
-        guidance_scale_input, guidance_scale_2_input, steps_slider, seed_input, randomize_seed_checkbox
+        guidance_scale_input, guidance_scale_2_input, seed_input, randomize_seed_checkbox
     ]
     generate_button.click(fn=generate_video, inputs=ui_inputs, outputs=[video_output, seed_input])
 
