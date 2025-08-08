@@ -122,6 +122,8 @@ def generate_video(
     Args:
         input_image (PIL.Image): The input image to animate. Will be resized to target dimensions.
         prompt (str): Text prompt describing the desired animation or motion.
+        steps (int, optional): Number of inference steps. More steps = higher quality but slower.
+            Defaults to 4. Range: 1-30.
         negative_prompt (str, optional): Negative prompt to avoid unwanted elements. 
             Defaults to default_negative_prompt (contains unwanted visual artifacts).
         duration_seconds (float, optional): Duration of the generated video in seconds.
@@ -130,8 +132,6 @@ def generate_video(
             Defaults to 1.0. Range: 0.0-20.0.
         guidance_scale_2 (float, optional): Controls adherence to the prompt. Higher values = more adherence.
             Defaults to 1.0. Range: 0.0-20.0.
-        steps (int, optional): Number of inference steps. More steps = higher quality but slower.
-            Defaults to 4. Range: 1-30.
         seed (int, optional): Random seed for reproducible results. Defaults to 42.
             Range: 0 to MAX_SEED (2147483647).
         randomize_seed (bool, optional): Whether to use a random seed instead of the provided seed.
