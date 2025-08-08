@@ -88,11 +88,11 @@ def resize_image_landscape(image: Image.Image) -> Image.Image:
 def get_duration(
     input_image,
     prompt,
+    steps,
     negative_prompt,
     duration_seconds,
     guidance_scale,
     guidance_scale_2,
-    steps,
     seed,
     randomize_seed,
     progress,
@@ -103,11 +103,11 @@ def get_duration(
 def generate_video(
     input_image,
     prompt,
+    steps = 4,
     negative_prompt=default_negative_prompt,
     duration_seconds = MAX_DURATION,
     guidance_scale = 1,
-    guidance_scale_2 = 1,
-    steps = 4,
+    guidance_scale_2 = 1,    
     seed = 42,
     randomize_seed = False,
     progress=gr.Progress(track_tqdm=True),
@@ -213,17 +213,20 @@ with gr.Blocks() as demo:
             [
                 "wan_i2v_input.JPG",
                 "POV selfie video, white cat with sunglasses standing on surfboard, relaxed smile, tropical beach behind (clear water, green hills, blue sky with clouds). Surfboard tips, cat falls into ocean, camera plunges underwater with bubbles and sunlight beams. Brief underwater view of cat’s face, then cat resurfaces, still filming selfie, playful summer vacation mood.",
+                4,
             ],
             [
                 "wan22_input_2.jpg",
                 "A sleek lunar vehicle glides into view from left to right, kicking up moon dust as astronauts in white spacesuits hop aboard with characteristic lunar bouncing movements. In the distant background, a VTOL craft descends straight down and lands silently on the surface. Throughout the entire scene, ethereal aurora borealis ribbons dance across the star-filled sky, casting shimmering curtains of green, blue, and purple light that bathe the lunar landscape in an otherworldly, magical glow.",
+                4,
             ],
             [
                 "kill_bill.jpeg",
                 "Uma Thurman's character, Beatrix Kiddo, holds her razor-sharp katana blade steady in the cinematic lighting. Suddenly, the polished steel begins to soften and distort, like heated metal starting to lose its structural integrity. The blade's perfect edge slowly warps and droops, molten steel beginning to flow downward in silvery rivulets while maintaining its metallic sheen. The transformation starts subtly at first - a slight bend in the blade - then accelerates as the metal becomes increasingly fluid. The camera holds steady on her face as her piercing eyes gradually narrow, not with lethal focus, but with confusion and growing alarm as she watches her weapon dissolve before her eyes. Her breathing quickens slightly as she witnesses this impossible transformation. The melting intensifies, the katana's perfect form becoming increasingly abstract, dripping like liquid mercury from her grip. Molten droplets fall to the ground with soft metallic impacts. Her expression shifts from calm readiness to bewilderment and concern as her legendary instrument of vengeance literally liquefies in her hands, leaving her defenseless and disoriented.",
+                6,
             ],
         ],
-        inputs=[input_image_component, prompt_input], outputs=[video_output, seed_input], fn=generate_video, cache_examples="lazy"
+        inputs=[input_image_component, prompt_input, steps_slider], outputs=[video_output, seed_input], fn=generate_video, cache_examples="lazy"
     )
 
 if __name__ == "__main__":
