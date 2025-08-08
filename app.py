@@ -97,7 +97,7 @@ def get_duration(
     randomize_seed,
     progress,
 ):
-    return steps * 15
+    return int(steps) * 15
 
 @spaces.GPU(duration=get_duration)
 def generate_video(
