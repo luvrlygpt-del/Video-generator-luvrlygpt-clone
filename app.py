@@ -187,7 +187,7 @@ with gr.Blocks() as demo:
         with gr.Column():
             input_image_component = gr.Image(type="pil", label="Input Image (auto-resized to target H/W)")
             prompt_input = gr.Textbox(label="Prompt", value=default_prompt_i2v)
-            duration_seconds_input = gr.Slider(minimum=MIN_DURATION, maximum=MAX_DURATION, step=0.1, value=MAX_DURATION, label="Duration (seconds)", info=f"Clamped to model's {MIN_FRAMES_MODEL}-{MAX_FRAMES_MODEL} frames at {FIXED_FPS}fps.")
+            duration_seconds_input = gr.Slider(minimum=MIN_DURATION, maximum=MAX_DURATION, step=0.1, value=3.5, label="Duration (seconds)", info=f"Clamped to model's {MIN_FRAMES_MODEL}-{MAX_FRAMES_MODEL} frames at {FIXED_FPS}fps.")
             
             with gr.Accordion("Advanced Settings", open=False):
                 negative_prompt_input = gr.Textbox(label="Negative Prompt", value=default_negative_prompt, lines=3)
