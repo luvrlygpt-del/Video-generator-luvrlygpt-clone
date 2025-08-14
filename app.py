@@ -16,26 +16,20 @@ import random
 import gc
 from optimization import optimize_pipeline_
 
+
 MODEL_ID = "Wan-AI/Wan2.2-I2V-A14B-Diffusers"
 
-# Dynamic sizing parameters
-MOD_VALUE = 32
-DEFAULT_H = 480
-DEFAULT_W = 832
-MAX_AREA = 480.0 * 832.0  # Maximum area for resolution calculation
-
-# Slider ranges for manual adjustment
-SLIDER_MIN_H, SLIDER_MAX_H = 128, 896
-SLIDER_MIN_W, SLIDER_MAX_W = 128, 896
-
+LANDSCAPE_WIDTH = 832
+LANDSCAPE_HEIGHT = 480
 MAX_SEED = np.iinfo(np.int32).max
 
 FIXED_FPS = 16
 MIN_FRAMES_MODEL = 8
 MAX_FRAMES_MODEL = 81
 
-MIN_DURATION = round(MIN_FRAMES_MODEL/FIXED_FPS, 1)
-MAX_DURATION = round(MAX_FRAMES_MODEL/FIXED_FPS, 1)
+MIN_DURATION = round(MIN_FRAMES_MODEL/FIXED_FPS,1)
+MAX_DURATION = round(MAX_FRAMES_MODEL/FIXED_FPS,1)
+
 
 pipe = WanImageToVideoPipeline.from_pretrained(MODEL_ID,
     transformer=WanTransformer3DModel.from_pretrained('cbensimon/Wan2.2-I2V-A14B-bf16-Diffusers',
@@ -56,63 +50,40 @@ for i in range(3):
     torch.cuda.synchronize() 
     torch.cuda.empty_cache()
 
-# Optimize with default dimensions for initial load
 optimize_pipeline_(pipe,
-    image=Image.new('RGB', (DEFAULT_W, DEFAULT_H)),
+    image=Image.new('RGB', (LANDSCAPE_WIDTH, LANDSCAPE_HEIGHT)),
     prompt='prompt',
-    height=DEFAULT_H,
-    width=DEFAULT_W,
+    height=LANDSCAPE_HEIGHT,
+    width=LANDSCAPE_WIDTH,
     num_frames=MAX_FRAMES_MODEL,
 )
+
 
 default_prompt_i2v = "make this image come alive, cinematic motion, smooth animation"
 default_negative_prompt = "色调艳丽, 过曝, 静态, 细节模糊不清, 字幕, 风格, 作品, 画作, 画面, 静止, 整体发灰, 最差质量, 低质量, JPEG压缩残留, 丑陋的, 残缺的, 多余的手指, 画得不好的手部, 画得不好的脸部, 畸形的, 毁容的, 形态畸形的肢体, 手指融合, 静止不动的画面, 杂乱的背景, 三条腿, 背景人很多, 倒着走"
 
 
-def calculate_optimal_dimensions(pil_image):
-    """
-    Calculate optimal dimensions for the output video based on input image aspect ratio.
-    Maintains aspect ratio while fitting within the maximum area constraint.
-    """
-    if pil_image is None:
-        return DEFAULT_H, DEFAULT_W
-    
-    orig_w, orig_h = pil_image.size
-    if orig_w <= 0 or orig_h <= 0:
-        return DEFAULT_H, DEFAULT_W
-    
-    # Calculate aspect ratio
-    aspect_ratio = orig_h / orig_w
-    
-    # Calculate dimensions that maintain aspect ratio within max area
-    calc_h = round(np.sqrt(MAX_AREA * aspect_ratio))
-    calc_w = round(np.sqrt(MAX_AREA / aspect_ratio))
-    
-    # Ensure dimensions are multiples of MOD_VALUE
-    calc_h = max(MOD_VALUE, (calc_h // MOD_VALUE) * MOD_VALUE)
-    calc_w = max(MOD_VALUE, (calc_w // MOD_VALUE) * MOD_VALUE)
-    
-    # Clamp to slider ranges
-    new_h = int(np.clip(calc_h, SLIDER_MIN_H, (SLIDER_MAX_H // MOD_VALUE) * MOD_VALUE))
-    new_w = int(np.clip(calc_w, SLIDER_MIN_W, (SLIDER_MAX_W // MOD_VALUE) * MOD_VALUE))
-    
-    return new_h, new_w
+def resize_image(image: Image.Image) -> Image.Image:
+    if image.height > image.width:
+        transposed = image.transpose(Image.Transpose.ROTATE_90)
+        resized = resize_image_landscape(transposed)
+        return resized.transpose(Image.Transpose.ROTATE_270)
+    return resize_image_landscape(image)
 
 
-def handle_image_upload(uploaded_image, current_h, current_w):
-    """
-    Update height and width sliders when an image is uploaded.
-    """
-    if uploaded_image is None:
-        return gr.update(value=DEFAULT_H), gr.update(value=DEFAULT_W)
-    
-    try:
-        new_h, new_w = calculate_optimal_dimensions(uploaded_image)
-        return gr.update(value=new_h), gr.update(value=new_w)
-    except Exception as e:
-        gr.Warning("Error calculating dimensions, using defaults")
-        return gr.update(value=DEFAULT_H), gr.update(value=DEFAULT_W)
-
+def resize_image_landscape(image: Image.Image) -> Image.Image:
+    target_aspect = LANDSCAPE_WIDTH / LANDSCAPE_HEIGHT
+    width, height = image.size
+    in_aspect = width / height
+    if in_aspect > target_aspect:
+        new_width = round(height * target_aspect)
+        left = (width - new_width) // 2
+        image = image.crop((left, 0, left + new_width, height))
+    else:
+        new_height = round(width / target_aspect)
+        top = (height - new_height) // 2
+        image = image.crop((0, top, width, top + new_height))
+    return image.resize((LANDSCAPE_WIDTH, LANDSCAPE_HEIGHT), Image.LANCZOS)
 
 def get_duration(
     input_image,
@@ -120,8 +91,6 @@ def get_duration(
     steps,
     negative_prompt,
     duration_seconds,
-    height,
-    width,
     guidance_scale,
     guidance_scale_2,
     seed,
@@ -130,27 +99,24 @@ def get_duration(
 ):
     return int(steps) * 15
 
-
 @spaces.GPU(duration=get_duration)
 def generate_video(
     input_image,
     prompt,
-    steps=4,
+    steps = 4,
     negative_prompt=default_negative_prompt,
-    duration_seconds=MAX_DURATION,
-    height=DEFAULT_H,
-    width=DEFAULT_W,
-    guidance_scale=1,
-    guidance_scale_2=1,    
-    seed=42,
-    randomize_seed=False,
+    duration_seconds = MAX_DURATION,
+    guidance_scale = 1,
+    guidance_scale_2 = 1,    
+    seed = 42,
+    randomize_seed = False,
     progress=gr.Progress(track_tqdm=True),
 ):
     """
     Generate a video from an input image using the Wan 2.2 14B I2V model with Lightning LoRA.
     
     This function takes an input image and generates a video animation based on the provided
-    prompt and parameters. It uses an FP8 quantized Wan 2.2 14B Image-to-Video model with Lightning LoRA
+    prompt and parameters. It uses an FP8 qunatized Wan 2.2 14B Image-to-Video model in with Lightning LoRA
     for fast generation in 4-8 steps.
     
     Args:
@@ -161,13 +127,11 @@ def generate_video(
         negative_prompt (str, optional): Negative prompt to avoid unwanted elements. 
             Defaults to default_negative_prompt (contains unwanted visual artifacts).
         duration_seconds (float, optional): Duration of the generated video in seconds.
-            Defaults to MAX_DURATION. Clamped between MIN_DURATION and MAX_DURATION.
-        height (int): Target height for the output video. Will be adjusted to multiple of MOD_VALUE (32).
-        width (int): Target width for the output video. Will be adjusted to multiple of MOD_VALUE (32).
+            Defaults to 2. Clamped between MIN_FRAMES_MODEL/FIXED_FPS and MAX_FRAMES_MODEL/FIXED_FPS.
         guidance_scale (float, optional): Controls adherence to the prompt. Higher values = more adherence.
-            Defaults to 1.0. Range: 0.0-10.0.
-        guidance_scale_2 (float, optional): Controls adherence to the prompt in low noise stage.
-            Defaults to 1.0. Range: 0.0-10.0.
+            Defaults to 1.0. Range: 0.0-20.0.
+        guidance_scale_2 (float, optional): Controls adherence to the prompt. Higher values = more adherence.
+            Defaults to 1.0. Range: 0.0-20.0.
         seed (int, optional): Random seed for reproducible results. Defaults to 42.
             Range: 0 to MAX_SEED (2147483647).
         randomize_seed (bool, optional): Whether to use a random seed instead of the provided seed.
@@ -181,26 +145,27 @@ def generate_video(
     
     Raises:
         gr.Error: If input_image is None (no image uploaded).
+    
+    Note:
+        - The function automatically resizes the input image to the target dimensions
+        - Frame count is calculated as duration_seconds * FIXED_FPS (24)
+        - Output dimensions are adjusted to be multiples of MOD_VALUE (32)
+        - The function uses GPU acceleration via the @spaces.GPU decorator
+        - Generation time varies based on steps and duration (see get_duration function)
     """
     if input_image is None:
         raise gr.Error("Please upload an input image.")
     
-    # Ensure dimensions are multiples of MOD_VALUE
-    target_h = max(MOD_VALUE, (int(height) // MOD_VALUE) * MOD_VALUE)
-    target_w = max(MOD_VALUE, (int(width) // MOD_VALUE) * MOD_VALUE)
-    
     num_frames = np.clip(int(round(duration_seconds * FIXED_FPS)), MIN_FRAMES_MODEL, MAX_FRAMES_MODEL)
     current_seed = random.randint(0, MAX_SEED) if randomize_seed else int(seed)
-    
-    # Resize image to target dimensions
-    resized_image = input_image.resize((target_w, target_h), Image.LANCZOS)
+    resized_image = resize_image(input_image)
 
     output_frames_list = pipe(
         image=resized_image,
         prompt=prompt,
         negative_prompt=negative_prompt,
-        height=target_h,
-        width=target_w,
+        height=resized_image.height,
+        width=resized_image.width,
         num_frames=num_frames,
         guidance_scale=float(guidance_scale),
         guidance_scale_2=float(guidance_scale_2),
@@ -215,83 +180,39 @@ def generate_video(
 
     return video_path, current_seed
 
-
 with gr.Blocks() as demo:
     gr.Markdown("# Fast 4 steps Wan 2.2 I2V (14B) with Lightning LoRA")
-    gr.Markdown("Run Wan 2.2 in just 4-8 steps, with [Lightning LoRA](https://huggingface.co/Kijai/WanVideo_comfy/tree/main/Wan22-Lightning), fp8 quantization & AoT compilation - compatible with 🧨 diffusers and ZeroGPU⚡️")
-    
+    gr.Markdown("run Wan 2.2 in just 4-8 steps, with [Lightning LoRA](https://huggingface.co/Kijai/WanVideo_comfy/tree/main/Wan22-Lightning), fp8 quantization & AoT compilation - compatible with 🧨 diffusers and ZeroGPU⚡️")
     with gr.Row():
         with gr.Column():
             input_image_component = gr.Image(type="pil", label="Input Image (auto-resized to target H/W)")
             prompt_input = gr.Textbox(label="Prompt", value=default_prompt_i2v)
-            duration_seconds_input = gr.Slider(
-                minimum=MIN_DURATION, 
-                maximum=MAX_DURATION, 
-                step=0.1, 
-                value=3.5, 
-                label="Duration (seconds)", 
-                info=f"Clamped to model's {MIN_FRAMES_MODEL}-{MAX_FRAMES_MODEL} frames at {FIXED_FPS}fps."
-            )
+            duration_seconds_input = gr.Slider(minimum=MIN_DURATION, maximum=MAX_DURATION, step=0.1, value=3.5, label="Duration (seconds)", info=f"Clamped to model's {MIN_FRAMES_MODEL}-{MAX_FRAMES_MODEL} frames at {FIXED_FPS}fps.")
             
             with gr.Accordion("Advanced Settings", open=False):
                 negative_prompt_input = gr.Textbox(label="Negative Prompt", value=default_negative_prompt, lines=3)
                 seed_input = gr.Slider(label="Seed", minimum=0, maximum=MAX_SEED, step=1, value=42, interactive=True)
                 randomize_seed_checkbox = gr.Checkbox(label="Randomize seed", value=True, interactive=True)
-                
-                with gr.Row():
-                    height_input = gr.Slider(
-                        minimum=SLIDER_MIN_H, 
-                        maximum=SLIDER_MAX_H, 
-                        step=MOD_VALUE, 
-                        value=DEFAULT_H, 
-                        label=f"Output Height (multiple of {MOD_VALUE})"
-                    )
-                    width_input = gr.Slider(
-                        minimum=SLIDER_MIN_W, 
-                        maximum=SLIDER_MAX_W, 
-                        step=MOD_VALUE, 
-                        value=DEFAULT_W, 
-                        label=f"Output Width (multiple of {MOD_VALUE})"
-                    )
-                
                 steps_slider = gr.Slider(minimum=1, maximum=30, step=1, value=6, label="Inference Steps") 
                 guidance_scale_input = gr.Slider(minimum=0.0, maximum=10.0, step=0.5, value=1, label="Guidance Scale - high noise stage")
                 guidance_scale_2_input = gr.Slider(minimum=0.0, maximum=10.0, step=0.5, value=1, label="Guidance Scale 2 - low noise stage")
 
             generate_button = gr.Button("Generate Video", variant="primary")
-            
         with gr.Column():
             video_output = gr.Video(label="Generated Video", autoplay=True, interactive=False)
-    
-    # Auto-update dimensions when image is uploaded
-    input_image_component.upload(
-        fn=handle_image_upload,
-        inputs=[input_image_component, height_input, width_input],
-        outputs=[height_input, width_input]
-    )
-    
-    # Reset dimensions when image is cleared
-    input_image_component.clear(
-        fn=handle_image_upload,
-        inputs=[input_image_component, height_input, width_input],
-        outputs=[height_input, width_input]
-    )
     
     ui_inputs = [
         input_image_component, prompt_input, steps_slider,
         negative_prompt_input, duration_seconds_input,
-        height_input, width_input,
-        guidance_scale_input, guidance_scale_2_input, 
-        seed_input, randomize_seed_checkbox
+        guidance_scale_input, guidance_scale_2_input, seed_input, randomize_seed_checkbox
     ]
-    
     generate_button.click(fn=generate_video, inputs=ui_inputs, outputs=[video_output, seed_input])
 
     gr.Examples(
         examples=[ 
             [
                 "wan_i2v_input.JPG",
-                "POV selfie video, white cat with sunglasses standing on surfboard, relaxed smile, tropical beach behind (clear water, green hills, blue sky with clouds). Surfboard tips, cat falls into ocean, camera plunges underwater with bubbles and sunlight beams. Brief underwater view of cat's face, then cat resurfaces, still filming selfie, playful summer vacation mood.",
+                "POV selfie video, white cat with sunglasses standing on surfboard, relaxed smile, tropical beach behind (clear water, green hills, blue sky with clouds). Surfboard tips, cat falls into ocean, camera plunges underwater with bubbles and sunlight beams. Brief underwater view of cat’s face, then cat resurfaces, still filming selfie, playful summer vacation mood.",
                 4,
             ],
             [
@@ -305,10 +226,7 @@ with gr.Blocks() as demo:
                 6,
             ],
         ],
-        inputs=[input_image_component, prompt_input, steps_slider], 
-        outputs=[video_output, seed_input], 
-        fn=generate_video, 
-        cache_examples="lazy"
+        inputs=[input_image_component, prompt_input, steps_slider], outputs=[video_output, seed_input], fn=generate_video, cache_examples="lazy"
     )
 
 if __name__ == "__main__":
