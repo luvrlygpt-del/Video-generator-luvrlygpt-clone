@@ -4,7 +4,7 @@ emoji: 🎥💨
 colorFrom: gray
 colorTo: pink
 sdk: gradio
-sdk_version: 5.41.1
+sdk_version: 5.44.1
 app_file: app.py
 pinned: true
 short_description: generate a video from an image with a text prompt
