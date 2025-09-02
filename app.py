@@ -19,8 +19,11 @@ from optimization import optimize_pipeline_
 
 MODEL_ID = "Wan-AI/Wan2.2-I2V-A14B-Diffusers"
 
-LANDSCAPE_WIDTH = 832
-LANDSCAPE_HEIGHT = 480
+MAX_DIM = 832
+MIN_DIM = 480
+SQUARE_DIM = 640
+MULTIPLE_OF = 16
+
 MAX_SEED = np.iinfo(np.int32).max
 
 FIXED_FPS = 16
@@ -50,11 +53,14 @@ for i in range(3):
     torch.cuda.synchronize() 
     torch.cuda.empty_cache()
 
+OPTIMIZE_WIDTH = 832 
+OPTIMIZE_HEIGHT = 624
+
 optimize_pipeline_(pipe,
-    image=Image.new('RGB', (LANDSCAPE_WIDTH, LANDSCAPE_HEIGHT)),
+    image=Image.new('RGB', (OPTIMIZE_WIDTH, OPTIMIZE_HEIGHT)),
     prompt='prompt',
-    height=LANDSCAPE_HEIGHT,
-    width=LANDSCAPE_WIDTH,
+    height=OPTIMIZE_HEIGHT,
+    width=OPTIMIZE_WIDTH,
     num_frames=MAX_FRAMES_MODEL,
 )
 
@@ -62,28 +68,51 @@ optimize_pipeline_(pipe,
 default_prompt_i2v = "make this image come alive, cinematic motion, smooth animation"
 default_negative_prompt = "色调艳丽, 过曝, 静态, 细节模糊不清, 字幕, 风格, 作品, 画作, 画面, 静止, 整体发灰, 最差质量, 低质量, JPEG压缩残留, 丑陋的, 残缺的, 多余的手指, 画得不好的手部, 画得不好的脸部, 畸形的, 毁容的, 形态畸形的肢体, 手指融合, 静止不动的画面, 杂乱的背景, 三条腿, 背景人很多, 倒着走"
 
-
 def resize_image(image: Image.Image) -> Image.Image:
-    if image.height > image.width:
-        transposed = image.transpose(Image.Transpose.ROTATE_90)
-        resized = resize_image_landscape(transposed)
-        return resized.transpose(Image.Transpose.ROTATE_270)
-    return resize_image_landscape(image)
-
-
-def resize_image_landscape(image: Image.Image) -> Image.Image:
-    target_aspect = LANDSCAPE_WIDTH / LANDSCAPE_HEIGHT
+    """
+    Resizes an image to fit within the model's constraints, preserving aspect ratio as much as possible.
+    """
     width, height = image.size
-    in_aspect = width / height
-    if in_aspect > target_aspect:
-        new_width = round(height * target_aspect)
-        left = (width - new_width) // 2
-        image = image.crop((left, 0, left + new_width, height))
+
+    # Handle square case
+    if width == height:
+        return image.resize((SQUARE_DIM, SQUARE_DIM), Image.LANCZOS)
+
+    aspect_ratio = width / height
+    
+    MAX_ASPECT_RATIO = MAX_DIM / MIN_DIM 
+    MIN_ASPECT_RATIO = MIN_DIM / MAX_DIM 
+
+    image_to_resize = image
+    
+    if aspect_ratio > MAX_ASPECT_RATIO:
+        # Very wide image -> crop width to fit 832x480 aspect ratio
+        target_w, target_h = MAX_DIM, MIN_DIM
+        crop_width = int(round(height * MAX_ASPECT_RATIO))
+        left = (width - crop_width) // 2
+        image_to_resize = image.crop((left, 0, left + crop_width, height))
+    elif aspect_ratio < MIN_ASPECT_RATIO:
+        # Very tall image -> crop height to fit 480x832 aspect ratio
+        target_w, target_h = MIN_DIM, MAX_DIM
+        crop_height = int(round(width / MIN_ASPECT_RATIO))
+        top = (height - crop_height) // 2
+        image_to_resize = image.crop((0, top, width, top + crop_height))
     else:
-        new_height = round(width / target_aspect)
-        top = (height - new_height) // 2
-        image = image.crop((0, top, width, top + new_height))
-    return image.resize((LANDSCAPE_WIDTH, LANDSCAPE_HEIGHT), Image.LANCZOS)
+        if width > height:  # Landscape
+            target_w = MAX_DIM
+            target_h = int(round(target_w / aspect_ratio))
+        else:  # Portrait
+            target_h = MAX_DIM
+            target_w = int(round(target_h * aspect_ratio))
+
+    final_w = round(target_w / MULTIPLE_OF) * MULTIPLE_OF
+    final_h = round(target_h / MULTIPLE_OF) * MULTIPLE_OF
+
+    final_w = max(MIN_DIM, min(MAX_DIM, final_w))
+    final_h = max(MIN_DIM, min(MAX_DIM, final_h))
+    
+    return image_to_resize.resize((final_w, final_h), Image.LANCZOS)
+
 
 def get_duration(
     input_image,
@@ -147,7 +176,6 @@ def generate_video(
         gr.Error: If input_image is None (no image uploaded).
     
     Note:
-        - The function automatically resizes the input image to the target dimensions
         - Frame count is calculated as duration_seconds * FIXED_FPS (24)
         - Output dimensions are adjusted to be multiples of MOD_VALUE (32)
         - The function uses GPU acceleration via the @spaces.GPU decorator
@@ -185,7 +213,7 @@ with gr.Blocks() as demo:
     gr.Markdown("run Wan 2.2 in just 4-8 steps, with [Lightning LoRA](https://huggingface.co/Kijai/WanVideo_comfy/tree/main/Wan22-Lightning), fp8 quantization & AoT compilation - compatible with 🧨 diffusers and ZeroGPU⚡️")
     with gr.Row():
         with gr.Column():
-            input_image_component = gr.Image(type="pil", label="Input Image (auto-resized to target H/W)")
+            input_image_component = gr.Image(type="pil", label="Input Image")
             prompt_input = gr.Textbox(label="Prompt", value=default_prompt_i2v)
             duration_seconds_input = gr.Slider(minimum=MIN_DURATION, maximum=MAX_DURATION, step=0.1, value=3.5, label="Duration (seconds)", info=f"Clamped to model's {MIN_FRAMES_MODEL}-{MAX_FRAMES_MODEL} frames at {FIXED_FPS}fps.")
             

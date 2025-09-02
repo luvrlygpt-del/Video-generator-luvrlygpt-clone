@@ -14,18 +14,21 @@ from torchao.quantization import Int8WeightOnlyConfig
 
 from optimization_utils import capture_component_call
 from optimization_utils import aoti_compile
-from optimization_utils import ZeroGPUCompiledModel
 from optimization_utils import drain_module_parameters
 
 
 P = ParamSpec('P')
 
+LATENT_FRAMES_DIM = torch.export.Dim('num_latent_frames', min=8, max=81)
 
-TRANSFORMER_NUM_FRAMES_DIM = torch.export.Dim('num_frames', min=3, max=21)
+LATENT_PATCHED_HEIGHT_DIM = torch.export.Dim('latent_patched_height', min=30, max=52)
+LATENT_PATCHED_WIDTH_DIM = torch.export.Dim('latent_patched_width', min=30, max=52)
 
 TRANSFORMER_DYNAMIC_SHAPES = {
     'hidden_states': {
-        2: TRANSFORMER_NUM_FRAMES_DIM,
+        2: LATENT_FRAMES_DIM,
+        3: 2 * LATENT_PATCHED_HEIGHT_DIM,
+        4: 2 * LATENT_PATCHED_WIDTH_DIM,
     },
 }
 
@@ -44,6 +47,7 @@ def optimize_pipeline_(pipeline: Callable[P, Any], *args: P.args, **kwargs: P.kw
     @spaces.GPU(duration=1500)
     def compile_transformer():
         
+        # This LoRA fusion part remains the same
         pipeline.load_lora_weights(
             "Kijai/WanVideo_comfy", 
             weight_name="Lightx2v/lightx2v_I2V_14B_480p_cfg_step_distill_rank128_bf16.safetensors", 
@@ -70,61 +74,33 @@ def optimize_pipeline_(pipeline: Callable[P, Any], *args: P.args, **kwargs: P.kw
         quantize_(pipeline.transformer, Float8DynamicActivationFloat8WeightConfig())
         quantize_(pipeline.transformer_2, Float8DynamicActivationFloat8WeightConfig())
         
-        hidden_states: torch.Tensor = call.kwargs['hidden_states']
-        hidden_states_transposed = hidden_states.transpose(-1, -2).contiguous()
-        if hidden_states.shape[-1] > hidden_states.shape[-2]:
-            hidden_states_landscape = hidden_states
-            hidden_states_portrait = hidden_states_transposed
-        else:
-            hidden_states_landscape = hidden_states_transposed
-            hidden_states_portrait = hidden_states
-
-        exported_landscape_1 = torch.export.export(
+        
+        exported_1 = torch.export.export(
             mod=pipeline.transformer,
             args=call.args,
-            kwargs=call.kwargs | {'hidden_states': hidden_states_landscape},
+            kwargs=call.kwargs,
             dynamic_shapes=dynamic_shapes,
         )
         
-        exported_portrait_2 = torch.export.export(
+        exported_2 = torch.export.export(
             mod=pipeline.transformer_2,
             args=call.args,
-            kwargs=call.kwargs | {'hidden_states': hidden_states_portrait},
+            kwargs=call.kwargs,
             dynamic_shapes=dynamic_shapes,
         )
 
-        compiled_landscape_1 = aoti_compile(exported_landscape_1, INDUCTOR_CONFIGS)
-        compiled_portrait_2 = aoti_compile(exported_portrait_2, INDUCTOR_CONFIGS)
+        compiled_1 = aoti_compile(exported_1, INDUCTOR_CONFIGS)
+        compiled_2 = aoti_compile(exported_2, INDUCTOR_CONFIGS)
+        
+        return compiled_1, compiled_2
 
-        compiled_landscape_2 = ZeroGPUCompiledModel(compiled_landscape_1.archive_file, compiled_portrait_2.weights)
-        compiled_portrait_1 = ZeroGPUCompiledModel(compiled_portrait_2.archive_file, compiled_landscape_1.weights)
-
-        return (
-            compiled_landscape_1,
-            compiled_landscape_2,
-            compiled_portrait_1,
-            compiled_portrait_2,
-        )
 
     quantize_(pipeline.text_encoder, Int8WeightOnlyConfig())
-    cl1, cl2, cp1, cp2 = compile_transformer()
+    
+    compiled_transformer_1, compiled_transformer_2 = compile_transformer()
 
-    def combined_transformer_1(*args, **kwargs):
-        hidden_states: torch.Tensor = kwargs['hidden_states']
-        if hidden_states.shape[-1] > hidden_states.shape[-2]:
-            return cl1(*args, **kwargs)
-        else:
-            return cp1(*args, **kwargs)
-
-    def combined_transformer_2(*args, **kwargs):
-        hidden_states: torch.Tensor = kwargs['hidden_states']
-        if hidden_states.shape[-1] > hidden_states.shape[-2]:
-            return cl2(*args, **kwargs)
-        else:
-            return cp2(*args, **kwargs)
-
-    pipeline.transformer.forward = combined_transformer_1
+    pipeline.transformer.forward = compiled_transformer_1
     drain_module_parameters(pipeline.transformer)
 
-    pipeline.transformer_2.forward = combined_transformer_2
+    pipeline.transformer_2.forward = compiled_transformer_2
     drain_module_parameters(pipeline.transformer_2)
