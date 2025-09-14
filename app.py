@@ -1,6 +1,6 @@
 # PyTorch 2.8 (hack)
 import os
-os.system('pip install --upgrade --pre --extra-index-url https://download.pytorch.org/whl/nightly/cu126 "torch<2.9" spaces')
+os.system('pip install --upgrade --pre --extra-index-url https://download.pytorch.org/whl/nightly/cu126 "torch<2.9"')
 
 # Actual demo code
 import spaces
