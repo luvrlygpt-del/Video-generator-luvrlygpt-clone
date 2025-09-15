@@ -1,8 +1,3 @@
-# PyTorch 2.8 (hack)
-import os
-os.system('pip install --upgrade --pre --extra-index-url https://download.pytorch.org/whl/nightly/cu126 "torch<2.9"')
-
-# Actual demo code
 import spaces
 import torch
 from diffusers.pipelines.wan.pipeline_wan_i2v import WanImageToVideoPipeline
