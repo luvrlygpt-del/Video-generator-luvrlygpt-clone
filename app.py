@@ -9,7 +9,12 @@ import numpy as np
 from PIL import Image
 import random
 import gc
-from optimization import optimize_pipeline_
+
+from torchao.quantization import quantize_
+from torchao.quantization import Float8DynamicActivationFloat8WeightConfig
+from torchao.quantization import Int8WeightOnlyConfig
+
+import aoti
 
 
 MODEL_ID = "Wan-AI/Wan2.2-I2V-A14B-Diffusers"
@@ -23,7 +28,7 @@ MAX_SEED = np.iinfo(np.int32).max
 
 FIXED_FPS = 16
 MIN_FRAMES_MODEL = 8
-MAX_FRAMES_MODEL = 81
+MAX_FRAMES_MODEL = 80
 
 MIN_DURATION = round(MIN_FRAMES_MODEL/FIXED_FPS,1)
 MAX_DURATION = round(MAX_FRAMES_MODEL/FIXED_FPS,1)
@@ -43,21 +48,29 @@ pipe = WanImageToVideoPipeline.from_pretrained(MODEL_ID,
     torch_dtype=torch.bfloat16,
 ).to('cuda')
 
-for i in range(3): 
-    gc.collect()
-    torch.cuda.synchronize() 
-    torch.cuda.empty_cache()
-
-OPTIMIZE_WIDTH = 832 
-OPTIMIZE_HEIGHT = 624
-
-optimize_pipeline_(pipe,
-    image=Image.new('RGB', (OPTIMIZE_WIDTH, OPTIMIZE_HEIGHT)),
-    prompt='prompt',
-    height=OPTIMIZE_HEIGHT,
-    width=OPTIMIZE_WIDTH,
-    num_frames=MAX_FRAMES_MODEL,
+pipe.load_lora_weights(
+    "Kijai/WanVideo_comfy", 
+    weight_name="Lightx2v/lightx2v_I2V_14B_480p_cfg_step_distill_rank128_bf16.safetensors", 
+    adapter_name="lightx2v"
 )
+kwargs_lora = {}
+kwargs_lora["load_into_transformer_2"] = True
+pipe.load_lora_weights(
+    "Kijai/WanVideo_comfy", 
+    weight_name="Lightx2v/lightx2v_I2V_14B_480p_cfg_step_distill_rank128_bf16.safetensors", 
+    adapter_name="lightx2v_2", **kwargs_lora
+)
+pipe.set_adapters(["lightx2v", "lightx2v_2"], adapter_weights=[1., 1.])
+pipe.fuse_lora(adapter_names=["lightx2v"], lora_scale=3., components=["transformer"])
+pipe.fuse_lora(adapter_names=["lightx2v_2"], lora_scale=1., components=["transformer_2"])
+pipe.unload_lora_weights()
+
+quantize_(pipe.text_encoder, Int8WeightOnlyConfig())
+quantize_(pipe.transformer, Float8DynamicActivationFloat8WeightConfig())
+quantize_(pipe.transformer_2, Float8DynamicActivationFloat8WeightConfig())
+
+aoti.aoti_blocks_load(pipe.transformer, 'zerogpu-aoti/Wan2', variant='fp8da')
+aoti.aoti_blocks_load(pipe.transformer_2, 'zerogpu-aoti/Wan2', variant='fp8da')
 
 
 default_prompt_i2v = "make this image come alive, cinematic motion, smooth animation"
@@ -109,6 +122,14 @@ def resize_image(image: Image.Image) -> Image.Image:
     return image_to_resize.resize((final_w, final_h), Image.LANCZOS)
 
 
+def get_num_frames(duration_seconds: float):
+    return 1 + int(np.clip(
+        int(round(duration_seconds * FIXED_FPS)),
+        MIN_FRAMES_MODEL,
+        MAX_FRAMES_MODEL,
+    ))
+
+
 def get_duration(
     input_image,
     prompt,
@@ -121,7 +142,13 @@ def get_duration(
     randomize_seed,
     progress,
 ):
-    return int(steps) * 15
+    BASE_FRAMES_HEIGHT_WIDTH = 81 * 832 * 624
+    BASE_STEP_DURATION = 15
+    width, height = resize_image(input_image).size
+    frames = get_num_frames(duration_seconds)
+    factor = frames * width * height / BASE_FRAMES_HEIGHT_WIDTH
+    step_duration = BASE_STEP_DURATION * factor ** 1.5
+    return 10 + int(steps) * step_duration
 
 @spaces.GPU(duration=get_duration)
 def generate_video(
@@ -179,7 +206,7 @@ def generate_video(
     if input_image is None:
         raise gr.Error("Please upload an input image.")
     
-    num_frames = np.clip(int(round(duration_seconds * FIXED_FPS)), MIN_FRAMES_MODEL, MAX_FRAMES_MODEL)
+    num_frames = get_num_frames(duration_seconds)
     current_seed = random.randint(0, MAX_SEED) if randomize_seed else int(seed)
     resized_image = resize_image(input_image)
 
