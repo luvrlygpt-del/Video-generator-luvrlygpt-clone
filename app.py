@@ -279,5 +279,9 @@ with gr.Blocks() as demo:
         inputs=[input_image_component, prompt_input, steps_slider], outputs=[video_output, seed_input], fn=generate_video, cache_examples=True, cache_mode="lazy"
     )
 
+
+css = '''
+.gradio-container .contain{max-width: 1000px !important; margin: 0 auto}
+'''
 if __name__ == "__main__":
-    demo.queue().launch(mcp_server=True)
+    demo.queue().launch(mcp_server=True, css=css)
