@@ -1,4 +1,5 @@
 git+https://github.com/linoytsaban/diffusers.git@wan22-loras
+https://gradio-pypi-previews.s3.amazonaws.com/b1fdb5e6632b02f6e56c11b2c0a40615d3894b3f/gradio-6.1.0-py3-none-any.whl
 
 transformers
 accelerate
